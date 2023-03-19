@@ -5,11 +5,18 @@ import (
 	"strings"
 )
 
-func GetUserData(remainingTickets uint) (string, string, string, uint) {
+type UserData struct {
+	FirstName       string
+	LastName        string
+	Email           string
+	NumberOfTickets uint
+}
+
+func GetUserData(remainingTickets uint) UserData {
 	var firstName, lastName = getUserName()
 	var email = getEmail()
 	var tickets = getTickets(remainingTickets)
-	return firstName, lastName, email, tickets
+	return UserData{firstName, lastName, email, tickets}
 
 }
 
@@ -49,13 +56,12 @@ func getEmail() string {
 func getTickets(remainingTickets uint) uint {
 	var numberOfTicket uint
 	for {
-		fmt.Println("Enter number of tickets you want to buy")
+		fmt.Println("Enter numer of tickets you want to buy")
 		fmt.Scan(&numberOfTicket)
 
 		if numberOfTicket > 0 && numberOfTicket <= remainingTickets {
 			return numberOfTicket
 		}
 
-		fmt.Println("Enter ticket number is not valid,try again")
 	}
 }
