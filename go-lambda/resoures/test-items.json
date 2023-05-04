@@ -1,0 +1,22 @@
+{
+  "My-table": [
+    {
+      "PutRequest": {
+        "Item": {
+          "Email": { "S": "n.velkov@gmail.com" },
+          "FirstName": { "S": "Ned" },
+          "LastName": { "S": "Velkov" }
+        }
+      }
+    },
+    {
+      "PutRequest": {
+        "Item": {
+          "Email": { "S": "test@test.com" },
+          "FirstName": { "S": "Test" },
+          "LastName": { "S": "Test" }
+        }
+      }
+    }
+  ]
+}

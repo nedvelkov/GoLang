@@ -1,0 +1,27 @@
+{
+  "AttributeDefinitions": [
+    {
+      "AttributeName": "Email",
+      "AttributeType": "S"
+    },
+    {
+      "AttributeName": "FirstName",
+      "AttributeType": "S"
+    }
+  ],
+  "ProvisionedThroughput": {
+    "WriteCapacityUnits": 5,
+    "ReadCapacityUnits": 5
+  },
+  "TableName": "My-table",
+  "KeySchema": [
+    {
+      "AttributeName": "Email",
+      "KeyType": "HASH"
+    },
+    {
+      "AttributeName": "FirstName",
+      "KeyType": "RANGE"
+    }
+  ]
+}

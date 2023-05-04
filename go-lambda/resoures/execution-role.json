@@ -1,0 +1,30 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:BatchGet*",
+        "dynamodb:DescribeStream",
+        "dynamodb:DescribeTable",
+        "dynamodb:GetRecords",
+        "dynamodb:Get*",
+        "dynamodb:Query",
+        "dynamodb:Scan",
+        "dynamodb:BatchWrite*",
+        "dynamodb:CreateTable",
+        "dynamodb:Delete*",
+        "dynamodb:Update*",
+        "dynamodb:PutItem",
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents",
+        "sts:AssumeRole"
+      ],
+      "Principal": {
+        "Service": "lambda.amazonaws.com"
+      },
+      "Resource": "*"
+    }
+  ]
+}
