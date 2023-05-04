@@ -1,0 +1,7 @@
+## Ignore zip files
+*.zip
+*.exe
+main
+
+##Ignore library files
+yt-tutorial/volume
