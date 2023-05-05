@@ -1,5 +1,5 @@
 {
-  "body": "{'firstName': 'Bob','lastName': 'Evans'}",
+  "body": "{\"firstName\":\"Bob\",\"lastName\":\"Evans\"}",
   "resource": "/{proxy+}",
   "path": "/path/to/resource",
   "httpMethod": "GET",

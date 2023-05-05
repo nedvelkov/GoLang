@@ -1,31 +1,31 @@
 package main
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+)
+
+type User struct {
+	FirstName string `json:"firstName"`
+	LastName  string `json:"lastName"`
+}
 
 func main() {
-	fmt.Println("Hello World")
-	fmt.Println("This is a test")
-	fmt.Println("The sum of 2 and 3 is", sum(2, 3))
+	user := unmarshalJsonString("{\"firstName\":\"Bob\",\"lastName\":\"Evans\"}")
+	if user == nil {
+		fmt.Println("User is nil")
+	} else {
 
-	nextInt := intSeq()
-	fmt.Println(nextInt())
-	fmt.Println(nextInt())
-	fmt.Println(nextInt())
-
-	resetInt := intSeq()
-	fmt.Println(resetInt())
-	fmt.Println(intSeq()())
-}
-
-func sum(a, b int) int {
-	return a + b
-}
-
-func intSeq() func() int {
-	i := 0
-	return func() int {
-		i++
-		return i
+		fmt.Println(user.FirstName)
 	}
+}
 
+func unmarshalJsonString(text string) *User {
+	var user User
+
+	if err := json.Unmarshal([]byte(text), &user); err != nil {
+		fmt.Println(err)
+		return nil
+	}
+	return &user
 }
