@@ -44,6 +44,7 @@ awslocal apigateway create-resource `
   --stage-name test
 
   http://localhost:4566/restapis/8r5un0yne1/test/_user_request_/test
+  http://localhost:4566/restapis/82pmtk2gsj/test/_user_request_/test
 
 
 
