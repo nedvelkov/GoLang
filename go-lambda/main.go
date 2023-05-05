@@ -29,7 +29,7 @@ func main() {
 func handler(request events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
 	switch request.HTTPMethod {
 	case "GET":
-		return handlers.GetUser(request, tableName, dynamoClient)
+		return handlers.HelloGo()
 	case "POST":
 		return handlers.CreateUser(request, tableName, dynamoClient)
 	default:

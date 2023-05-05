@@ -1,21 +1,20 @@
 #Create dynamodb table execute command in same directory as table-definition.json
-aws --endpoint-url=http://localhost:4566 dynamodb create-table --cli-input-json file://table-definition.json 
-
+awslocal dynamodb create-table --cli-input-json file://table-definition.json 
 
 awslocal dynamodb batch-write-item --request-items "file://test-items.json"
 
 #Create iam role execute command in same directory as execution-role.json
-aws --endpoint-url=http://localhost:4566 iam create-role --role-name "go-lambda-execution-role" --assume-role-policy-document file://execution-role.json
+awslocal iam create-role --role-name "go-lambda-execution-role" --assume-role-policy-document file://execution-role.json
 awslocal iam create-policy-version --policy-arn arn:aws:iam::000000000000:role/go-lambda-execution-role --policy-document file://execution-role-v2.json --set-as-default
 
 #Create zip file
 #follow instruction in https://docs.aws.amazon.com/lambda/latest/dg/golang-package.html
 
 #Upload lambda function,  note the role arn and execute command in same directory as main.go
-aws --endpoint-url=http://localhost:4566 lambda create-function --function-name "go-2-lambda-function" --zip-file fileb://main.zip --handler main --runtime go1.x --role arn:aws:iam::000000000000:role/go-lambda-execution-role #arn of the role created above
+awslocal lambda create-function --function-name "go-lambda-function" --zip-file fileb://main.zip --handler main --runtime go1.x --role arn:aws:iam::000000000000:role/go-lambda-execution-role
 
 #Invoke lambda function execute command in same directory as apigateway-aws-proxy-post.json and select output.json save location
-aws --endpoint-url=http://localhost:4566 lambda invoke --cli-binary-format raw-in-base64-out --function-name go-2-lambda-function --invocation-type RequestResponse --no-sign-request --payload file://apigateway-aws-proxy-post.json --endpoint-url=http://localhost:4566 ..\output.json
+awslocal lambda invoke --cli-binary-format raw-in-base64-out --function-name go-lambda-function --invocation-type RequestResponse --no-sign-request --payload file://apigateway-aws-proxy-post.json ..\output.json
 awslocal lambda invoke --cli-binary-format raw-in-base64-out --function-name go-lambda-function --invocation-type RequestResponse --no-sign-request ..\output.json
 
 #Update lambda function,  note the role arn and execute command in same directory as main.go

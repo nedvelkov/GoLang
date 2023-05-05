@@ -27,6 +27,10 @@ func GetUser(request events.APIGatewayProxyRequest, tableName string, dynamoClie
 	return apiResponse(http.StatusBadRequest, ErrorBody{*aws.String("email is required")})
 }
 
+func HelloGo() (*events.APIGatewayProxyResponse, error) {
+	return apiResponse(http.StatusOK, "Hello Go!")
+}
+
 func CreateUser(request events.APIGatewayProxyRequest, tableName string, dynamoClient dynamodbiface.DynamoDBAPI) (*events.APIGatewayProxyResponse, error) {
 	result, err := user.CreateUser(request, tableName, dynamoClient)
 	if err != nil {
