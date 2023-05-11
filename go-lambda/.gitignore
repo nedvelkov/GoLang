@@ -4,3 +4,5 @@
 *.tfplan
 main
 .terraform.lock.hcl
+lib/
+cache/

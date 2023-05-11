@@ -1,7 +1,8 @@
 ## Ignore zip files
 *.zip
 *.exe
+*.tfplan
 main
-
-##Ignore library files
-yt-tutorial/volume
+.terraform.lock.hcl
+lib/
+cache/
