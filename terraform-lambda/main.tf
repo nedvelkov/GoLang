@@ -26,25 +26,6 @@ resource "aws_iam_role" "lambda_exec" {
   })
 }
 
-resource "aws_iam_policy" "dynamoDBLambdaPolicy" {
-  name = "DynamoDBLambdaPolicy"
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "dynamodb:*"
-        ]
-        Resource = [
-          aws_dynamodb_table.users_table.arn
-        ]
-      }
-    ]
-  })
-}
-
 resource "aws_iam_role_policy_attachment" "lambda_policy" {
   for_each=toset([
     "arn:aws:iam::aws:policy/service-role/AWSLambdaDynamoDBExecutionRole",
@@ -54,6 +35,3 @@ resource "aws_iam_role_policy_attachment" "lambda_policy" {
   role         = aws_iam_role.lambda_exec.name
   policy_arn   = aws_iam_policy.dynamoDBLambdaPolicy.arn
   }
-
-
-
