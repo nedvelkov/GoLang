@@ -47,6 +47,10 @@ resource "aws_api_gateway_integration_response" "integration_response_200" {
     "method.response.header.Content-Type" : "'text/html'"
   }
 
+   depends_on = [
+    aws_api_gateway_integration.integration
+  ]
+
   response_templates = {
     "text/html" : "$input.path('$')"
   }

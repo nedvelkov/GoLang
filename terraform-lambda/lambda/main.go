@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"os"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -43,25 +45,16 @@ func HandleLambdaEvent(request events.APIGatewayProxyRequest) (*events.APIGatewa
 		return &responseDb, nil
 	}
 
-	//method := request.HTTPMethod
 	message := "Hello from Go!"
-	// if err := json.Unmarshal([]byte(request.Body), &user); err != nil {
-	// 	return nil, errors.New(request.RequestContext.HTTPMethod)
-	// }
-	// if len(user.FirstName) > 0 {
-	// 	message = fmt.Sprintf("Hello %v %v", user.FirstName, user.LastName)
-	// } else {
-	// 	message = "Hello from Go!"
-	// }
-
 	response := events.APIGatewayProxyResponse{Headers: map[string]string{"Content-Type": "application/json"},
 		Body: message, StatusCode: 200}
 	return &response, nil
 }
 
 func main() {
+	url := os.Getenv("AWS_ENDPOINT_URL")
 	sess, err := session.NewSession(&aws.Config{
-		Endpoint: aws.String("http://172.17.0.2:4566"),
+		Endpoint: aws.String(url),
 		Region:   aws.String("us-east-1"),
 	})
 	if err != nil {
@@ -70,4 +63,12 @@ func main() {
 
 	dynamoClient = dynamodb.New(sess)
 	lambda.Start(HandleLambdaEvent)
+}
+
+func createKeyValuePairs(m map[string]string) string {
+	b := new(bytes.Buffer)
+	for key, value := range m {
+		fmt.Fprintf(b, "%s=\"%s\"\n", key, value)
+	}
+	return b.String()
 }
