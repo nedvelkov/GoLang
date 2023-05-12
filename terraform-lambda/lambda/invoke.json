@@ -2,10 +2,10 @@
   "body": "{\"firstName\":\"Bob\",\"lastName\":\"Evans\"}",
   "resource": "/{proxy+}",
   "path": "/path/to/resource",
-  "httpMethod": "GET",
+  "httpMethod": "ANY",
   "isBase64Encoded": true,
   "queryStringParameters": {
-    "foo": "bar"
+    "email": "n.velkov@gmail.com"
   },
   "multiValueQueryStringParameters": {
     "foo": ["bar"]
