@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"os"
@@ -52,10 +51,11 @@ func HandleLambdaEvent(request events.APIGatewayProxyRequest) (*events.APIGatewa
 }
 
 func main() {
-	url := os.Getenv("AWS_ENDPOINT_URL")
+	url := os.Getenv("LOCALSTACK_HOSTNAME")
+	region := os.Getenv("AWS_REGION")
 	sess, err := session.NewSession(&aws.Config{
-		Endpoint: aws.String(url),
-		Region:   aws.String("us-east-1"),
+		Endpoint: aws.String(fmt.Sprintf("http://%v:4566", url)),
+		Region:   aws.String(region),
 	})
 	if err != nil {
 		return
@@ -63,12 +63,4 @@ func main() {
 
 	dynamoClient = dynamodb.New(sess)
 	lambda.Start(HandleLambdaEvent)
-}
-
-func createKeyValuePairs(m map[string]string) string {
-	b := new(bytes.Buffer)
-	for key, value := range m {
-		fmt.Fprintf(b, "%s=\"%s\"\n", key, value)
-	}
-	return b.String()
 }
