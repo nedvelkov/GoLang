@@ -23,15 +23,23 @@ resource "aws_s3_bucket_acl" "s3_bucket" {
   acl    = "public-read"
 }
 
-resource "aws_s3_object" "object_www" {
+# resource "aws_s3_object" "object_www" {
+#   depends_on   = [aws_s3_bucket.s3_bucket]
+#   for_each     = fileset("../www/", "*")
+#   bucket       = var.bucket_name
+#   key          = basename(each.value)
+#   source = "../www/${each.value}"
+#   etag = filemd5("../www/${each.value}")
+#   content_type = "text/html"
+#   acl          = "public-read"
+# }
+
+resource "null_resource" "remove_and_upload_to_s3" {
   depends_on   = [aws_s3_bucket.s3_bucket]
-  for_each     = fileset("../www/", "*")
-  bucket       = var.bucket_name
-  key          = basename(each.value)
-  source = "../www/${each.value}"
-  etag = filemd5("../www/${each.value}")
-  content_type = "text/html"
-  acl          = "public-read"
+
+  provisioner "local-exec" {
+    command = "awslocal s3 sync ../www s3://${aws_s3_bucket.s3_bucket.id}"
+  }
 }
 
 # resource "aws_s3_object" "object_assets" {
