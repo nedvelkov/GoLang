@@ -12,9 +12,9 @@ import (
 )
 
 type User struct {
-	Email     string `json:"email"`
-	FirstName string `json:"firstName"`
-	LastName  string `json:"lastName"`
+	Email     string `json,dynamodbav:"email"`
+	FirstName string `json,dynamodbav:"firstName"`
+	LastName  string `json,dynamodbav:"lastName"`
 }
 
 var (
@@ -55,17 +55,19 @@ func createUser(request events.APIGatewayProxyRequest, tableName string, dynamoC
 		return nil, errors.New(ErrorAlreadyExists)
 	}
 
+	// Marshall the user is not working correctly - add additional fields to the struct
 	av, err := dynamodbattribute.MarshalMap(user)
 	if err != nil {
 		return nil, errors.New(ErrorMarshalling)
 	}
+
 	input := &dynamodb.PutItemInput{
 		Item:      av,
 		TableName: aws.String(tableName),
 	}
 	_, err = dynamoClient.PutItem(input)
 	if err != nil {
-		return nil, errors.New(err.Error())
+		return nil, errors.New(ErrorCreating)
 	}
 
 	return &user, nil

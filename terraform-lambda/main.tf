@@ -28,7 +28,7 @@ resource "aws_iam_role" "lambda_exec" {
 
 resource "aws_iam_role_policy_attachment" "lambda_policy" {
   for_each=toset([
-    "arn:aws:iam::aws:policy/service-role/AWSLambdaDynamoDBExecutionRole",
+    "arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess",
     "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
   ])
 
