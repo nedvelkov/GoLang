@@ -17,7 +17,7 @@ type ErrorBody struct {
 func GetUser(request events.APIGatewayProxyRequest, tableName string, dynamoClient dynamodbiface.DynamoDBAPI) (*events.APIGatewayProxyResponse, error) {
 	email := request.QueryStringParameters["email"]
 	if len(email) > 0 {
-		result, err := fetchUser(email, tableName, dynamoClient)
+		result, err := fetchRecord(email, tableName, dynamoClient)
 		if err != nil {
 			return apiResponse(http.StatusBadRequest, ErrorBody{*aws.String(err.Error())})
 		}
@@ -27,12 +27,32 @@ func GetUser(request events.APIGatewayProxyRequest, tableName string, dynamoClie
 }
 
 func CreateUser(request events.APIGatewayProxyRequest, tableName string, dynamoClient dynamodbiface.DynamoDBAPI) (*events.APIGatewayProxyResponse, error) {
-	result, err := createUser(request, tableName, dynamoClient)
+	result, err := createRecord(request, tableName, dynamoClient)
 	if err != nil {
 		return apiResponse(http.StatusBadRequest, ErrorBody{*aws.String(err.Error())})
 	}
 
 	return apiResponse(http.StatusCreated, result)
+}
+
+func UpdateUser(request events.APIGatewayProxyRequest, tableName string, dynamoClient dynamodbiface.DynamoDBAPI) (*events.APIGatewayProxyResponse, error) {
+	result, err := updateRecord(request, tableName, dynamoClient)
+	if err != nil {
+		return apiResponse(http.StatusBadRequest, ErrorBody{*aws.String(err.Error())})
+	}
+	return apiResponse(http.StatusOK, result)
+}
+
+func DeleteUser(request events.APIGatewayProxyRequest, tableName string, dynamoClient dynamodbiface.DynamoDBAPI) (*events.APIGatewayProxyResponse, error) {
+	email := request.QueryStringParameters["email"]
+	if len(email) > 0 {
+		err := deleteRecord(email, tableName, dynamoClient)
+		if err != nil {
+			return apiResponse(http.StatusBadRequest, ErrorBody{*aws.String(err.Error())})
+		}
+		return apiResponse(http.StatusOK, nil)
+	}
+	return apiResponse(http.StatusBadRequest, ErrorBody{*aws.String("email is required")})
 }
 
 func UnhandledMethod() (*events.APIGatewayProxyResponse, error) {

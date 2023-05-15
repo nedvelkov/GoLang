@@ -41,6 +41,10 @@ func HandleLambdaEvent(request events.APIGatewayProxyRequest) (*events.APIGatewa
 		return myFuncs.GetUser(request, tableName, dynamoClient)
 	case "POST":
 		return myFuncs.CreateUser(request, tableName, dynamoClient)
+	case "PUT":
+		return myFuncs.UpdateUser(request, tableName, dynamoClient)
+	case "DELETE":
+		return myFuncs.DeleteUser(request, tableName, dynamoClient)
 	default:
 		return myFuncs.UnhandledMethod()
 	}

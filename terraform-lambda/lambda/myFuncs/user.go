@@ -24,9 +24,10 @@ var (
 	ErrorCreating      = "Error creating user"
 	ErrorAlreadyExists = "User already exists"
 	ErrorInvalidEmail  = "Email is not valid"
+	ErrorDeleting      = "Error deleting user"
 )
 
-func fetchUser(email, tableName string, dynamoClient dynamodbiface.DynamoDBAPI) (*User, error) {
+func fetchRecord(email, tableName string, dynamoClient dynamodbiface.DynamoDBAPI) (*User, error) {
 	input := &dynamodb.GetItemInput{
 		Key: map[string]*dynamodb.AttributeValue{
 			"Email": {S: aws.String(email)}},
@@ -44,13 +45,13 @@ func fetchUser(email, tableName string, dynamoClient dynamodbiface.DynamoDBAPI) 
 	return item, nil
 }
 
-func createUser(request events.APIGatewayProxyRequest, tableName string, dynamoClient dynamodbiface.DynamoDBAPI) (*User, error) {
+func createRecord(request events.APIGatewayProxyRequest, tableName string, dynamoClient dynamodbiface.DynamoDBAPI) (*User, error) {
 	var user User
 	if err := json.Unmarshal([]byte(request.Body), &user); err != nil {
 		return nil, errors.New(ErrorUnmarshalling)
 	}
 
-	fetchUser, _ := fetchUser(user.Email, tableName, dynamoClient)
+	fetchUser, _ := fetchRecord(user.Email, tableName, dynamoClient)
 	if len(fetchUser.Email) > 0 {
 		return nil, errors.New(ErrorAlreadyExists)
 	}
@@ -71,4 +72,47 @@ func createUser(request events.APIGatewayProxyRequest, tableName string, dynamoC
 	}
 
 	return &user, nil
+}
+
+func updateRecord(request events.APIGatewayProxyRequest, tableName string, dynamoClient dynamodbiface.DynamoDBAPI) (*User, error) {
+	var user User
+	if err := json.Unmarshal([]byte(request.Body), &user); err != nil {
+		return nil, errors.New(ErrorUnmarshalling)
+	}
+
+	currentUser, _ := fetchRecord(user.Email, tableName, dynamoClient)
+	if len(currentUser.Email) == 0 {
+		return nil, errors.New(ErrorInvalidEmail)
+	}
+
+	av, err := dynamodbattribute.MarshalMap(user)
+	if err != nil {
+		return nil, errors.New(ErrorMarshalling)
+	}
+
+	input := &dynamodb.PutItemInput{
+		Item:      av,
+		TableName: aws.String(tableName),
+	}
+
+	_, err = dynamoClient.PutItem(input)
+	if err != nil {
+		return nil, errors.New(ErrorCreating)
+	}
+
+	return &user, nil
+}
+
+func deleteRecord(email, tableName string, dynamoClient dynamodbiface.DynamoDBAPI) error {
+	input := &dynamodb.DeleteItemInput{
+		Key: map[string]*dynamodb.AttributeValue{
+			"Email": {S: aws.String(email)},
+		},
+		TableName: aws.String(tableName),
+	}
+	_, err := dynamoClient.DeleteItem(input)
+	if err != nil {
+		return errors.New(ErrorDeleting)
+	}
+	return nil
 }
