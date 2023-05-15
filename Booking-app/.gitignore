@@ -6,3 +6,4 @@ main
 .terraform.lock.hcl
 lib/
 cache/
+www/
