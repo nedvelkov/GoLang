@@ -8,4 +8,4 @@ $urlConstant = "const API_GATEWAY_URL = """ + $url + """;"
 Set-Content -Path "./website/www/js/api.js" -Value $urlConstant
 
 docker build ./website -t dockernginx
-docker container run -d -p 5000:80 dockernginx:latest --name "website"
+docker run -d -p 5000:80 --name "website" -it dockernginx:latest
