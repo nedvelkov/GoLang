@@ -1,0 +1,1 @@
+{"Modules":[{"Key":"","Source":"","Dir":"."},{"Key":"cors","Source":"registry.terraform.io/squidfunk/api-gateway-enable-cors/aws","Version":"0.3.3","Dir":".terraform/modules/cors"}]}

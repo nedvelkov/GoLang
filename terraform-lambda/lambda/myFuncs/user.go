@@ -45,6 +45,22 @@ func fetchRecord(email, tableName string, dynamoClient dynamodbiface.DynamoDBAPI
 	return item, nil
 }
 
+func fetchAllRecords(tableName string, dynamoClient dynamodbiface.DynamoDBAPI) (*[]User, error) {
+	input := &dynamodb.ScanInput{
+		TableName: aws.String(tableName),
+	}
+	result, err := dynamoClient.Scan(input)
+	if err != nil {
+		return nil, errors.New(ErrorFetching)
+	}
+	users := new([]User)
+	err = dynamodbattribute.UnmarshalListOfMaps(result.Items, users)
+	if err != nil {
+		return nil, errors.New(ErrorUnmarshalling)
+	}
+	return users, nil
+}
+
 func createRecord(request events.APIGatewayProxyRequest, tableName string, dynamoClient dynamodbiface.DynamoDBAPI) (*User, error) {
 	var user User
 	if err := json.Unmarshal([]byte(request.Body), &user); err != nil {
