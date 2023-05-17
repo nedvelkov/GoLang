@@ -1,5 +1,5 @@
-resource "aws_lambda_function" "hello_world" {
-  function_name = "HelloWorld"
+resource "aws_lambda_function" "go_lambda" {
+  function_name = "GoLambda"
 
   filename = "${path.module}/lambda/main.zip"
 

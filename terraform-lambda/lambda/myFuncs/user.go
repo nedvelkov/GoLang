@@ -72,7 +72,6 @@ func createRecord(request events.APIGatewayProxyRequest, tableName string, dynam
 		return nil, errors.New(ErrorAlreadyExists)
 	}
 
-	// Marshall the user is not working correctly - add additional fields to the struct
 	av, err := dynamodbattribute.MarshalMap(user)
 	if err != nil {
 		return nil, errors.New(ErrorMarshalling)
