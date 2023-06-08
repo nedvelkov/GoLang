@@ -1,0 +1,9 @@
+## Ignore zip files
+*.zip
+*.exe
+*.tfplan
+main
+.terraform.lock.hcl
+lib/
+cache/
+www/

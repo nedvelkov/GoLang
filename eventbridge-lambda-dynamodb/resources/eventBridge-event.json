@@ -1,0 +1,9 @@
+[
+  {
+    "EventBusName": "lambda-bridge",
+    "Source": "test-event",
+    "Time": "2017-12-22T18:43:48Z",
+    "Resources": ["test-resource"],
+    "DetailType": "detail"
+  }
+]
