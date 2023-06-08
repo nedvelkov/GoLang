@@ -1,0 +1,11 @@
+[
+  {
+    "id": "1",
+    "account": "test-user",
+    "source": "test-source",
+    "time": "2017-12-22T18:43:48Z",
+    "region": "us-east-1",
+    "resources": "test-resource",
+    "detail-type": "detail"
+  }
+]
