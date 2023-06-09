@@ -1,7 +1,18 @@
 resource "aws_lambda_function" "go_lambda" {
   function_name = var.lambda_name
 
-  filename = "../main.zip"
+  filename = "../build/main.zip"
+
+  runtime = "go1.x"
+  handler = "main"
+
+  role = aws_iam_role.lambda_exec.arn
+}
+
+resource "aws_lambda_function" "api_response_lambda" {
+  function_name = "api-lambda-response"
+
+  filename = "../build/response.zip"
 
   runtime = "go1.x"
   handler = "main"

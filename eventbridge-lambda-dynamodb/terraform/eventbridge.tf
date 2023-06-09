@@ -6,7 +6,7 @@ module "eventbridge" {
   rules = {
     lambda = {
       description   = "Capture all order data"
-      event_pattern = jsonencode({ "Source" : ["test-event"] })
+      event_pattern = jsonencode({ "Source" : ["aws.apigateway"] })
       enabled       = true
     }
   }

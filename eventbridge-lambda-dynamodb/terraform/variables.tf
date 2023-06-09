@@ -18,3 +18,10 @@ variable "eventbrdige_name" {
   type        = string
   default     = "lambda-bridge"
 }
+
+variable "event_source" {
+  default     = "Name of event source"
+  type        = string
+  description = "aws.apigateway"
+
+}

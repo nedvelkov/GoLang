@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -20,11 +21,7 @@ type User struct {
 	Id        string `dynamodbav:"Id"`
 	FirstName string `dynamodbav:"FirstName"`
 	LastName  string `dynamodbav:"LastName"`
-}
-
-type Music struct {
-	Artist    string `dynamodbav:"Artist"`
-	SongTitle string `dynamodbav:"SongTitle"`
+	Invoke    string `dynamodbav:"Invoke"`
 }
 
 var (
@@ -48,16 +45,6 @@ func main() {
 	lambda.Start(HandleLambdaEvent)
 }
 
-func unmarshalJsonString(text string) *User {
-	var user User
-
-	if err := json.Unmarshal([]byte(text), &user); err != nil {
-		fmt.Println(err)
-		return nil
-	}
-	return &user
-}
-
 func HandleLambdaEvent() (*events.APIGatewayProxyResponse, error) {
 	record, err := createRecord(tableName, dynamoClient)
 	if err != nil {
@@ -78,6 +65,7 @@ func createRecord(tableName string, dynamoClient dynamodbiface.DynamoDBAPI) (*Us
 	user.Id = uuid
 	user.FirstName = "John"
 	user.LastName = "Doe"
+	user.Invoke = time.Now().Local().String()
 
 	av, err := dynamodbattribute.MarshalMap(user)
 	if err != nil {
