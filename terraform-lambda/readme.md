@@ -11,5 +11,5 @@
 
 # Test project
 
-To start project execute script `deploy.ps1`.
-For destroying resourses execute script `destroy.ps1`
+To start project execute script `deploy-terraform.ps1`.
+For destroying resourses execute script `destroy-terraform.ps1`
