@@ -15,3 +15,7 @@
 
 To start project execute script `deploy-terraform.ps1`.
 For destroying resourses execute script `destroy-terraform.ps1`
+
+For testing dynamoDB you can use command awslocal dynamodb scan --table-name <table-name>. The command display all records in selected table.
+
+For testing lambda fucntion use command awslocal lambda invoke --function-name <function-name> <output-file> --payload file://<path-to-json-file> --cli-binary-format raw-in-base64-out, where output-file will save result from function, path-to-json-file for current project in folder lambda is provided invoke.json for testing api request.

@@ -6,3 +6,6 @@ main
 .terraform.lock.hcl
 lib/
 cache/
+.terraform
+*.tfstate
+*.tfstate.backup
