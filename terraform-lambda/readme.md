@@ -11,5 +11,7 @@
 
 # Test project
 
+**Start docker and localstack.**
+
 To start project execute script `deploy-terraform.ps1`.
 For destroying resourses execute script `destroy-terraform.ps1`
