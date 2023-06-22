@@ -7,3 +7,5 @@ In folder **localstack** is located event pattern for testing eventbridge in loc
 > awslocal events put-events --entries file://file-name.json localstack-event.json
 
 - use event pattern in **localstack** folder
+
+To put event in localstack implementation of event bridge, the event must contain **Time, Source, Resources, DetailType, Detail, EventBusName, TraceHeader** parameters

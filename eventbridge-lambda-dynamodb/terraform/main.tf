@@ -46,3 +46,29 @@ resource "aws_iam_role_policy_attachment" "lambda_policy" {
   role       = aws_iam_role.lambda_exec.name
   policy_arn = each.value
 }
+
+data "aws_iam_policy_document" "lambda_event_bridge" {
+  count = 1
+  statement {
+    sid    = "AllowEventBridgePutEvents"
+    effect = "Allow"
+    resources = [
+      "arn:aws:events:us-east-1:000000000000:event-bus/${var.eventbrdige_name}",
+    ]
+
+    actions = [
+      "events:PutEvents",
+    ]
+  }
+}
+
+resource "aws_iam_policy" "lambda_event_bridge" {
+  count  = 1
+  policy = data.aws_iam_policy_document.lambda_event_bridge[count.index].json
+}
+
+resource "aws_iam_role_policy_attachment" "lambda_event_bridge" {
+  count      = 1
+  policy_arn = aws_iam_policy.lambda_event_bridge[count.index].arn
+  role       = aws_iam_role.lambda_exec.name
+}

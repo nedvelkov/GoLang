@@ -3,7 +3,6 @@
 variable "lambda_name" {
   description = "Name of lambda function"
   type        = string
-  default     = "go-lambda"
 }
 
 variable "table_name" {

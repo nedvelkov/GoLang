@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/json"
 	"errors"
@@ -45,15 +46,15 @@ func main() {
 	lambda.Start(HandleLambdaEvent)
 }
 
-func HandleLambdaEvent() (*events.APIGatewayProxyResponse, error) {
-	record, err := createRecord(tableName, dynamoClient)
+func HandleLambdaEvent(ctx context.Context, request events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
+	record, err := createRecord(request.Body, tableName, dynamoClient)
 	if err != nil {
 		return apiResponse(500, err.Error())
 	}
 	return apiResponse(200, record)
 }
 
-func createRecord(tableName string, dynamoClient dynamodbiface.DynamoDBAPI) (*User, error) {
+func createRecord(body, tableName string, dynamoClient dynamodbiface.DynamoDBAPI) (*User, error) {
 	b := make([]byte, 16)
 	_, err := rand.Read(b)
 	if err != nil {
@@ -61,11 +62,23 @@ func createRecord(tableName string, dynamoClient dynamodbiface.DynamoDBAPI) (*Us
 	}
 	uuid := fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
 
-	var user User
+	user, err := unmarshalJsonString(body)
+
+	if user == nil {
+		user = &User{}
+	}
+
+	if len(user.FirstName) == 0 {
+		user.FirstName = "John"
+		user.LastName = "Doe"
+	}
+
 	user.Id = uuid
-	user.FirstName = "John"
-	user.LastName = "Doe"
-	user.Invoke = time.Now().Local().String()
+	if err != nil {
+		user.Invoke = err.Error()
+	} else {
+		user.Invoke = time.Now().Local().GoString()
+	}
 
 	av, err := dynamodbattribute.MarshalMap(user)
 	if err != nil {
@@ -81,7 +94,7 @@ func createRecord(tableName string, dynamoClient dynamodbiface.DynamoDBAPI) (*Us
 		return nil, errors.New(err.Error())
 	}
 
-	return &user, nil
+	return user, nil
 }
 
 func apiResponse(status int, body interface{}) (*events.APIGatewayProxyResponse, error) {
@@ -92,4 +105,14 @@ func apiResponse(status int, body interface{}) (*events.APIGatewayProxyResponse,
 		Body:       string(stringBody),
 	}
 	return &response, nil
+}
+
+func unmarshalJsonString(text string) (*User, error) {
+	var user User
+
+	if err := json.Unmarshal([]byte(text), &user); err != nil {
+		fmt.Println(err)
+		return nil, errors.New(text)
+	}
+	return &user, nil
 }
