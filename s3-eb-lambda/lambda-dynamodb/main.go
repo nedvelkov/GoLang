@@ -9,7 +9,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -23,7 +25,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 )
 
-type User struct {
+type Record struct {
 	Id     string `dynamodbav:"Id"`
 	Bucket string `dynamodbav:"Bucket"`
 	Invoke string `dynamodbav:"Invoke"`
@@ -53,34 +55,33 @@ func main() {
 }
 
 func HandleLambdaEvent(ctx context.Context, s3Event events.S3Event) (*events.APIGatewayProxyResponse, error) {
-	record, err := createRecord(tableName, s3Event, dynamoClient)
-	if err != nil {
-		return apiResponse(500, err.Error())
+	for _, record := range s3Event.Records {
+		createRecord(tableName, record, dynamoClient)
 	}
-	// err = Save(record, "record")
-	// if err != nil {
-	// 	return apiResponse(500, err.Error())
-	// }
-	return apiResponse(200, record)
+
+	return apiResponse(200, "Done")
 }
 
-func createRecord(tableName string, s3Event events.S3Event, dynamoClient dynamodbiface.DynamoDBAPI) (*User, error) {
-	user := new(User)
-	user.Id = getGuid()
-	user.Invoke = time.Now().Local().String()
+func createRecord(tableName string, s3Event events.S3EventRecord, dynamoClient dynamodbiface.DynamoDBAPI) (*Record, error) {
+	s3 := s3Event.S3
 
-	for _, record := range s3Event.Records {
-		s3 := record.S3
-		val, err := getS3Object(s3.Object.Key)
-		if err != nil {
-			user.Bucket = err.Error()
-		} else {
-			user.Bucket = fmt.Sprintf("[%s - %s] Bucket = %s, Key = %s, Val=%v \n", record.EventSource, record.EventTime, s3.Bucket.Name, s3.Object.Key, val)
-			//Save(user, "record")
-		}
+	if filepath.Ext(s3.Object.Key) != ".csv" {
+		return nil, fmt.Errorf("file is not csv")
+	}
+	record := new(Record)
+	record.Id = getGuid()
+	record.Invoke = time.Now().Local().String()
+
+	val, err := getS3Object(s3)
+
+	if err != nil {
+		record.Bucket = err.Error()
+	} else {
+		record.Bucket = val
+		CopyObject(s3)
 	}
 
-	av, err := dynamodbattribute.MarshalMap(user)
+	av, err := dynamodbattribute.MarshalMap(record)
 	if err != nil {
 		return nil, errors.New("ErrorMarshalling")
 	}
@@ -94,7 +95,7 @@ func createRecord(tableName string, s3Event events.S3Event, dynamoClient dynamod
 		return nil, errors.New(err.Error())
 	}
 
-	return user, nil
+	return record, nil
 }
 
 func apiResponse(status int, body interface{}) (*events.APIGatewayProxyResponse, error) {
@@ -107,14 +108,15 @@ func apiResponse(status int, body interface{}) (*events.APIGatewayProxyResponse,
 	return &response, nil
 }
 
-func getS3Object(objectKey string) (string, error) {
+func getS3Object(e events.S3Entity) (string, error) {
 	resp, err := svc.GetObject(&s3.GetObjectInput{
-		Bucket: aws.String("my-bucket"),
-		Key:    aws.String(objectKey),
+		Bucket: aws.String(e.Bucket.Name),
+		Key:    aws.String(e.Object.Key),
 	})
 	if err != nil {
 		return "", err
 	}
+
 	r := csv.NewReader(bufio.NewReader(resp.Body))
 	stringSlice := []string{}
 	for {
@@ -132,23 +134,6 @@ func getS3Object(objectKey string) (string, error) {
 	return strings.Join(stringSlice, " ,"), nil
 }
 
-func Save(value interface{}, key string) error {
-	// p, err := json.Marshal(value)
-	// if err != nil {
-	// 	return err
-	// }
-	input := &s3.PutObjectInput{
-		Body:   strings.NewReader("Hello World!"),
-		Bucket: aws.String("export-bucket"),
-		Key:    aws.String(key),
-	}
-	_, err := svc.PutObject(input)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
 func getGuid() string {
 	b := make([]byte, 16)
 	_, err := rand.Read(b)
@@ -156,4 +141,21 @@ func getGuid() string {
 		return ""
 	}
 	return fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
+}
+
+func CopyObject(e events.S3Entity) error {
+	source := e.Bucket.Name + "/" + e.Object.Key
+	_, err := svc.CopyObject(&s3.CopyObjectInput{Bucket: aws.String("export-bucket/export/"),
+		CopySource: aws.String(url.QueryEscape(source)), Key: aws.String(e.Object.Key)})
+	if err != nil {
+		return err
+	}
+
+	// Wait to see if the item got copied
+	err = svc.WaitUntilObjectExists(&s3.HeadObjectInput{Bucket: aws.String("export-bucket/export/"), Key: aws.String(e.Object.Key)})
+	if err != nil {
+		return err
+	}
+
+	return err
 }
