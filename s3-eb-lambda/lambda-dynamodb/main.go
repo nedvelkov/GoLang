@@ -5,7 +5,6 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/csv"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -13,7 +12,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -54,12 +52,10 @@ func main() {
 	lambda.Start(HandleLambdaEvent)
 }
 
-func HandleLambdaEvent(ctx context.Context, s3Event events.S3Event) (*events.APIGatewayProxyResponse, error) {
+func HandleLambdaEvent(ctx context.Context, s3Event events.S3Event) {
 	for _, record := range s3Event.Records {
 		createRecord(tableName, record, dynamoClient)
 	}
-
-	return apiResponse(200, "Done")
 }
 
 func createRecord(tableName string, s3Event events.S3EventRecord, dynamoClient dynamodbiface.DynamoDBAPI) (*Record, error) {
@@ -70,7 +66,7 @@ func createRecord(tableName string, s3Event events.S3EventRecord, dynamoClient d
 	}
 	record := new(Record)
 	record.Id = getGuid()
-	record.Invoke = time.Now().Local().String()
+	record.Invoke = s3Event.EventTime.String()
 
 	val, err := getS3Object(s3)
 
@@ -96,16 +92,6 @@ func createRecord(tableName string, s3Event events.S3EventRecord, dynamoClient d
 	}
 
 	return record, nil
-}
-
-func apiResponse(status int, body interface{}) (*events.APIGatewayProxyResponse, error) {
-	stringBody, _ := json.Marshal(body)
-	response := events.APIGatewayProxyResponse{
-		Headers:    map[string]string{"Content-Type": "application/json", "Access-Control-Allow-Origin": "*"},
-		StatusCode: status,
-		Body:       string(stringBody),
-	}
-	return &response, nil
 }
 
 func getS3Object(e events.S3Entity) (string, error) {
@@ -151,7 +137,6 @@ func CopyObject(e events.S3Entity) error {
 		return err
 	}
 
-	// Wait to see if the item got copied
 	err = svc.WaitUntilObjectExists(&s3.HeadObjectInput{Bucket: aws.String("export-bucket/export/"), Key: aws.String(e.Object.Key)})
 	if err != nil {
 		return err
