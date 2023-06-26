@@ -17,3 +17,8 @@ variable "bucket_name" {
   default = "my-bucket"
   type    = string
 }
+
+variable "export_bucket" {
+  default = "export-bucket"
+  type    = string
+}

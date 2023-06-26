@@ -1,12 +1,16 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"crypto/rand"
+	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -16,6 +20,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
+	"github.com/aws/aws-sdk-go/service/s3"
 )
 
 type User struct {
@@ -27,21 +32,21 @@ type User struct {
 var (
 	dynamoClient dynamodbiface.DynamoDBAPI
 	tableName    string
-	//svc          *s3.S3
+	svc          *s3.S3
 )
 
 func main() {
-	url := os.Getenv("LOCALSTACK_HOSTNAME")
 	region := os.Getenv("AWS_REGION")
 	sess, err := session.NewSession(&aws.Config{
-		Endpoint: aws.String(fmt.Sprintf("http://%v:4566", url)),
-		Region:   aws.String(region),
+		Endpoint:         aws.String(os.Getenv("AWS_ENDPOINT_URL")),
+		Region:           aws.String(region),
+		S3ForcePathStyle: aws.Bool(true),
 	})
 	if err != nil {
 		return
 	}
 
-	//svc = s3.New(sess)
+	svc = s3.New(sess)
 	dynamoClient = dynamodb.New(sess)
 	tableName = "records"
 	lambda.Start(HandleLambdaEvent)
@@ -66,7 +71,13 @@ func createRecord(tableName string, s3Event events.S3Event, dynamoClient dynamod
 
 	for _, record := range s3Event.Records {
 		s3 := record.S3
-		user.Bucket = fmt.Sprintf("[%s - %s] Bucket = %s, Key = %s \n", record.EventSource, record.EventTime, s3.Bucket.Name, s3.Object.Key)
+		val, err := getS3Object(s3.Object.Key)
+		if err != nil {
+			user.Bucket = err.Error()
+		} else {
+			user.Bucket = fmt.Sprintf("[%s - %s] Bucket = %s, Key = %s, Val=%v \n", record.EventSource, record.EventTime, s3.Bucket.Name, s3.Object.Key, val)
+			//Save(user, "record")
+		}
 	}
 
 	av, err := dynamodbattribute.MarshalMap(user)
@@ -96,32 +107,47 @@ func apiResponse(status int, body interface{}) (*events.APIGatewayProxyResponse,
 	return &response, nil
 }
 
-// func Save(value interface{}, key string) error {
-// 	// p, err := json.Marshal(value)
-// 	// if err != nil {
-// 	// 	return err
-// 	// }
-// 	// input := &s3.PutObjectInput{
-// 	// 	Body:   strings.NewReader("Hello World!"),
-// 	// 	Bucket: aws.String("my-bucket"),
-// 	// 	Key:    aws.String(key),
-// 	// }
-// 	// _, err := svc.PutObject(input)
-// 	// if err != nil {
-// 	// 	return err
-// 	// }
+func getS3Object(objectKey string) (string, error) {
+	resp, err := svc.GetObject(&s3.GetObjectInput{
+		Bucket: aws.String("my-bucket"),
+		Key:    aws.String(objectKey),
+	})
+	if err != nil {
+		return "", err
+	}
+	r := csv.NewReader(bufio.NewReader(resp.Body))
+	stringSlice := []string{}
+	for {
+		record, err := r.Read()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return "", err
+		}
 
-// 	_, err := svc.PutObject(&s3.PutObjectInput{
-// 		Body:   strings.NewReader("Hello World!"),
-// 		Bucket: aws.String("my-bucket"),
-// 		Key:    &key,
-// 	})
-// 	if err != nil {
-// 		//log.Printf("Failed to upload data to %s/%s, %s\n", bucket, key, err)
-// 		return err
-// 	}
-// 	return nil
-// }
+		stringSlice = append(stringSlice, record...)
+	}
+
+	return strings.Join(stringSlice, " ,"), nil
+}
+
+func Save(value interface{}, key string) error {
+	// p, err := json.Marshal(value)
+	// if err != nil {
+	// 	return err
+	// }
+	input := &s3.PutObjectInput{
+		Body:   strings.NewReader("Hello World!"),
+		Bucket: aws.String("export-bucket"),
+		Key:    aws.String(key),
+	}
+	_, err := svc.PutObject(input)
+	if err != nil {
+		return err
+	}
+	return nil
+}
 
 func getGuid() string {
 	b := make([]byte, 16)
