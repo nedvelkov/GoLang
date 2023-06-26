@@ -1,0 +1,13 @@
+## Ignore zip files
+*.zip
+*.exe
+*.tfplan
+main
+.terraform.lock.hcl
+lib/
+cache/
+www/
+build/
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+.terraform
