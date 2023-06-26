@@ -69,37 +69,3 @@ resource "aws_iam_role_policy_attachment" "lambda_policy" {
   role       = aws_iam_role.lambda_exec.name
   policy_arn = each.value
 }
-
-
-# S3 Bucket
-resource "aws_s3_bucket" "bucket" {
-  bucket = var.bucket_name
-}
-
-resource "aws_s3_bucket" "export_bucket" {
-  bucket = var.export_bucket
-}
-
-resource "aws_s3_bucket_notification" "on_change" {
-
-  bucket = aws_s3_bucket.bucket.id
-  lambda_function {
-
-    lambda_function_arn = aws_lambda_function.go_lambda.arn
-    events              = ["s3:ObjectCreated:*"]
-    filter_prefix       = ""
-    filter_suffix       = ""
-
-  }
-
-}
-
-resource "aws_lambda_permission" "s3_invoke_lambda_permission" {
-
-  statement_id  = "AllowS3ToInvokeLambda"
-  action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.go_lambda.arn
-  principal     = "s3.amazonaws.com"
-  source_arn    = aws_s3_bucket.bucket.arn
-
-}

@@ -1,8 +1,4 @@
-$env:GOOS = "linux"
-$env:GOARCH = "amd64"
-$env:CGO_ENABLED = "0"
-go build -o main main.go
-
+Set-Location ./lambda
 
 if (-not (Test-Path ..\build)) {
     try {
@@ -15,3 +11,4 @@ if (-not (Test-Path ..\build)) {
 
 ~\Go\Bin\build-lambda-zip.exe -o ..\build\main.zip main
 
+Set-Location ..

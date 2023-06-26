@@ -1,6 +1,7 @@
 # Variables
 LAMBDA_NAME := go-lambda
 BUCKET_NAME := my-bucket
+EXPORT_BUCKET_NAME := export-bucket
 TABLE_NAME := records
 
 .PHONY: build
@@ -11,32 +12,32 @@ help: ## This help.
 
 #commands
 build:
-	cd ./lambda-dynamodb && \
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 && \
-	go build -o main main.go
+	powershell.exe ./scripts/build-main.ps1
 
 build-zip: build
-	cd ./lambda-dynamodb && \
-	build-lambda-zip -o ../build/main.zip main
+	powershell.exe ./scripts/zip-main.ps1
 
-update-lambda:
-	powershell.exe awslocal lambda update-function-code --function-name $(LAMBDA_NAME) --zip-file fileb://build/main.zip
+update-lambda: build-zip
+	awslocal lambda update-function-code --function-name $(LAMBDA_NAME) --zip-file fileb://build/main.zip
 
-invoke-lambda:
-	powershell.exe awslocal lambda invoke --function-name $(LAMBDA_NAME) --invocation-type Event --payload file://resources/s3event.json response.json
+upload-file:
+	 awslocal s3 cp /resources/list.csv  s3://my-$(BUCKET_NAME)
 
 scan-dynamodb:
-	powershell.exe awslocal dynamodb scan --table-name $(TABLE_NAME)
+	awslocal dynamodb scan --table-name $(TABLE_NAME)
 
 deploy-terraform:
 	cd ./terraform && \
 	terraform init && \
 	terraform apply --auto-approve -var="lambda_name=$(LAMBDA_NAME)" \
-	-var="bucket_name=$(BUCKET_NAME)" -var="table_name=$(TABLE_NAME)"
-	
+	-var="bucket_name=$(BUCKET_NAME)" -var="table_name=$(TABLE_NAME)" \
+	-var="export_bucket=$(EXPORT_BUCKET_NAME)"
 
 destroy-terraform:
-	powershell.exe awslocal s3 rm s3://$(BUCKET_NAME) --recursive
+	awslocal s3 rm s3://$(BUCKET_NAME) --recursive
+	awslocal s3 rm s3://$(EXPORT_BUCKET_NAME) --recursive
 	cd ./terraform && \
-	terraform destroy --auto-approve -var="lambda_name=$(LAMBDA_NAME)"
+	terraform destroy --auto-approve -var="lambda_name=$(LAMBDA_NAME)" \
+	-var="bucket_name=$(BUCKET_NAME)" -var="table_name=$(TABLE_NAME)" \
+	-var="export_bucket=$(EXPORT_BUCKET_NAME)"
 
