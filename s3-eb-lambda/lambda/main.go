@@ -21,6 +21,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/rs/zerolog"
 )
 
 type Record struct {
@@ -33,6 +34,7 @@ var (
 	dynamoClient dynamodbiface.DynamoDBAPI
 	tableName    string
 	svc          *s3.S3
+	logger       zerolog.Logger
 )
 
 func main() {
@@ -46,9 +48,11 @@ func main() {
 		return
 	}
 
+	logger = zerolog.New(os.Stdout)
 	svc = s3.New(sess)
 	dynamoClient = dynamodb.New(sess)
 	tableName = "records"
+	logger.Info().Msg("Invoke lambda")
 	lambda.Start(HandleLambdaEvent)
 }
 
@@ -59,6 +63,7 @@ func HandleLambdaEvent(ctx context.Context, s3Event events.S3Event) {
 }
 
 func createRecord(tableName string, s3Event events.S3EventRecord, dynamoClient dynamodbiface.DynamoDBAPI) (*Record, error) {
+	logger.Info().Msg("Process event record")
 	s3 := s3Event.S3
 
 	if filepath.Ext(s3.Object.Key) != ".csv" {
@@ -71,7 +76,7 @@ func createRecord(tableName string, s3Event events.S3EventRecord, dynamoClient d
 	val, err := getS3Object(s3)
 
 	if err != nil {
-		record.Bucket = err.Error()
+		logger.Error().Msg(err.Error())
 	} else {
 		record.Bucket = val
 		CopyObject(s3)
@@ -88,6 +93,7 @@ func createRecord(tableName string, s3Event events.S3EventRecord, dynamoClient d
 	}
 	_, err = dynamoClient.PutItem(input)
 	if err != nil {
+		logger.Error().Msg(err.Error())
 		return nil, errors.New(err.Error())
 	}
 
@@ -100,6 +106,7 @@ func getS3Object(e events.S3Entity) (string, error) {
 		Key:    aws.String(e.Object.Key),
 	})
 	if err != nil {
+		logger.Error().Msg(err.Error())
 		return "", err
 	}
 
@@ -111,6 +118,7 @@ func getS3Object(e events.S3Entity) (string, error) {
 			break
 		}
 		if err != nil {
+			logger.Error().Msg(err.Error())
 			return "", err
 		}
 
@@ -130,6 +138,7 @@ func getGuid() string {
 }
 
 func CopyObject(e events.S3Entity) error {
+	logger.Info().Msg("Copy file to export bucket")
 	source := e.Bucket.Name + "/" + e.Object.Key
 	_, err := svc.CopyObject(&s3.CopyObjectInput{Bucket: aws.String("export-bucket/export/"),
 		CopySource: aws.String(url.QueryEscape(source)), Key: aws.String(e.Object.Key)})

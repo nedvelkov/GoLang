@@ -21,10 +21,13 @@ update-lambda: build-zip
 	awslocal lambda update-function-code --function-name $(LAMBDA_NAME) --zip-file fileb://build/main.zip
 
 upload-file:
-	 awslocal s3 cp /resources/list.csv  s3://my-$(BUCKET_NAME)
+	 awslocal s3 cp ./resources/list.csv  s3://$(BUCKET_NAME)
 
 scan-dynamodb:
 	awslocal dynamodb scan --table-name $(TABLE_NAME)
+
+get-logs:
+	powershell.exe ./scripts/log-events.ps1
 
 deploy-terraform:
 	cd ./terraform && \
