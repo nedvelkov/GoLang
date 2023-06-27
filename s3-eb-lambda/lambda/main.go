@@ -79,7 +79,7 @@ func createRecord(tableName string, s3Event events.S3EventRecord) (*Record, erro
 	} else {
 		record.Bucket = val
 		CopyObject(s3, svc)
-		SendSqs()
+		SendSqs(val)
 	}
 
 	av, err := dynamodbattribute.MarshalMap(record)
@@ -157,39 +157,3 @@ func CopyObject(e events.S3Entity, svc *s3.S3) error {
 
 	return err
 }
-
-// func SendSqs() {
-// 	logger.Info().Msg("create SQS client")
-// 	svc := sqs.New(sess)
-
-// 	queueURL, err := getQueueUrl("sqs", svc)
-// 	if err != nil {
-// 		logger.Error().Msg(err.Error())
-// 		return
-// 	}
-
-// 	messageBody := "Hello from Go!"
-
-// 	sendMessageInput := &sqs.SendMessageInput{
-// 		MessageBody: aws.String(messageBody),
-// 		QueueUrl:    queueURL.QueueUrl,
-// 	}
-
-// 	logger.Info().Msg("sending message")
-// 	result, err := svc.SendMessage(sendMessageInput)
-// 	if err != nil {
-// 		logger.Error().Msg(err.Error())
-// 		return
-// 	}
-
-// 	logger.Info().Msg(fmt.Sprintf("send message with id %v", *result.MessageId))
-// }
-
-// func getQueueUrl(queueName string, svc *sqs.SQS) (*sqs.GetQueueUrlOutput, error) {
-
-// 	result, err := svc.GetQueueUrl(&sqs.GetQueueUrlInput{
-// 		QueueName: aws.String(queueName),
-// 	})
-
-// 	return result, err
-// }

@@ -7,7 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/sqs"
 )
 
-func SendSqs() {
+func SendSqs(m string) {
 	logger.Info().Msg("create SQS client")
 	svc := sqs.New(sess)
 
@@ -17,10 +17,8 @@ func SendSqs() {
 		return
 	}
 
-	messageBody := "Hello from Go!"
-
 	sendMessageInput := &sqs.SendMessageInput{
-		MessageBody: aws.String(messageBody),
+		MessageBody: aws.String(m),
 		QueueUrl:    queueURL.QueueUrl,
 	}
 
@@ -31,6 +29,7 @@ func SendSqs() {
 		return
 	}
 
+	logger.Info().Msg(fmt.Sprintf("send message with body %v", m))
 	logger.Info().Msg(fmt.Sprintf("send message with id %v", *result.MessageId))
 }
 
