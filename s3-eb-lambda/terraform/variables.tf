@@ -6,20 +6,8 @@ variable "lambda_name" {
   default     = "go-lambda"
 }
 
-variable "table_name" {
-  description = "Name of dynamodb table"
-  type        = string
-  default     = "records"
-
-}
-
 variable "bucket_name" {
   default = "my-bucket"
-  type    = string
-}
-
-variable "export_bucket" {
-  default = "export-bucket"
   type    = string
 }
 

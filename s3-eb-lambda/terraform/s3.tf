@@ -3,10 +3,6 @@ resource "aws_s3_bucket" "bucket" {
   bucket = var.bucket_name
 }
 
-resource "aws_s3_bucket" "export_bucket" {
-  bucket = var.export_bucket
-}
-
 resource "aws_s3_bucket_notification" "on_change" {
 
   bucket = aws_s3_bucket.bucket.id
@@ -14,9 +10,8 @@ resource "aws_s3_bucket_notification" "on_change" {
 
     lambda_function_arn = aws_lambda_function.go_lambda.arn
     events              = ["s3:ObjectCreated:*"]
-    filter_prefix       = ""
-    filter_suffix       = ""
-
+    filter_prefix       = "for-process/"
+    filter_suffix       = ".csv"
   }
 
 }

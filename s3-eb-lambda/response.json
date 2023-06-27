@@ -1,9 +1,0 @@
-{
-  "statusCode": 500,
-  "headers": {
-    "Access-Control-Allow-Origin": "*",
-    "Content-Type": "application/json"
-  },
-  "multiValueHeaders": null,
-  "body": "\"RequestError: send request failed\\ncaused by: Put \\\"http://my-bucket.172.17.0.2:4566/record\\\": dial tcp: lookup my-bucket.172.17.0.2 on 192.168.65.7:53: no such host\""
-}

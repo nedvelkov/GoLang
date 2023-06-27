@@ -3,105 +3,65 @@ package main
 import (
 	"bufio"
 	"context"
-	"crypto/rand"
 	"encoding/csv"
-	"errors"
-	"fmt"
 	"io"
 	"net/url"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/rs/zerolog"
 )
 
-type Record struct {
-	Id     string `dynamodbav:"Id"`
-	Bucket string `dynamodbav:"Bucket"`
-	Invoke string `dynamodbav:"Invoke"`
-}
-
 var (
-	tableName string
-	logger    zerolog.Logger
-	sess      *session.Session
+	logger zerolog.Logger
+	sess   *session.Session
 )
 
 func main() {
 	region := os.Getenv("AWS_REGION")
+	url := os.Getenv("AWS_ENDPOINT_URL")
 	sess = session.Must(session.NewSessionWithOptions(session.Options{
 		SharedConfigState: session.SharedConfigEnable,
 		Config: aws.Config{
-			Endpoint:         aws.String(os.Getenv("AWS_ENDPOINT_URL")),
+			Endpoint:         aws.String(url),
 			Region:           aws.String(region),
 			S3ForcePathStyle: aws.Bool(true),
 		},
 	}))
 
 	logger = zerolog.New(os.Stdout)
-	tableName = "records"
-	logger.Info().Msg("Invoke lambda")
+
+	logger.Info().Msg("invoke lambda")
 	lambda.Start(HandleLambdaEvent)
 }
 
 func HandleLambdaEvent(ctx context.Context, s3Event events.S3Event) {
 	for _, record := range s3Event.Records {
-		createRecord(tableName, record)
+		readRecord(record)
 	}
 }
 
-func createRecord(tableName string, s3Event events.S3EventRecord) (*Record, error) {
+func readRecord(s3Event events.S3EventRecord) {
 
-	logger.Info().Msg("Create S3 client")
+	logger.Info().Msg("create S3 client")
 	svc := s3.New(sess)
 
-	logger.Info().Msg("Process event record")
+	logger.Info().Msg("process event record")
 	s3 := s3Event.S3
 
-	if filepath.Ext(s3.Object.Key) != ".csv" {
-		return nil, fmt.Errorf("file is not csv")
-	}
-	record := new(Record)
-	record.Id = getGuid()
-	record.Invoke = s3Event.EventTime.String()
 	val, err := getS3Object(s3, svc)
 
 	if err != nil {
 		logger.Error().Msg(err.Error())
 	} else {
-		record.Bucket = val
 		CopyObject(s3, svc)
 		SendSqs(val)
 	}
-
-	av, err := dynamodbattribute.MarshalMap(record)
-	if err != nil {
-		return nil, errors.New("ErrorMarshalling")
-	}
-
-	input := &dynamodb.PutItemInput{
-		Item:      av,
-		TableName: aws.String(tableName),
-	}
-
-	logger.Info().Msg("Create dynamodb client")
-	dynamoClient := dynamodb.New(sess)
-
-	_, err = dynamoClient.PutItem(input)
-	if err != nil {
-		logger.Error().Msg(err.Error())
-		return nil, errors.New(err.Error())
-	}
-
-	return record, nil
 }
 
 func getS3Object(e events.S3Entity, svc *s3.S3) (string, error) {
@@ -132,25 +92,21 @@ func getS3Object(e events.S3Entity, svc *s3.S3) (string, error) {
 	return strings.Join(stringSlice, " ,"), nil
 }
 
-func getGuid() string {
-	b := make([]byte, 16)
-	_, err := rand.Read(b)
-	if err != nil {
-		return ""
-	}
-	return fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
-}
-
 func CopyObject(e events.S3Entity, svc *s3.S3) error {
-	logger.Info().Msg("Copy file to export bucket")
+	logger.Info().Msg("copy file to export folder")
+
 	source := e.Bucket.Name + "/" + e.Object.Key
-	_, err := svc.CopyObject(&s3.CopyObjectInput{Bucket: aws.String("export-bucket/export/"),
-		CopySource: aws.String(url.QueryEscape(source)), Key: aws.String(e.Object.Key)})
+	processFolder := e.Bucket.Name + "/processed"
+	files := strings.Split(e.Object.Key, "/")
+	fileName := files[len(files)-1]
+
+	_, err := svc.CopyObject(&s3.CopyObjectInput{Bucket: aws.String(processFolder),
+		CopySource: aws.String(url.QueryEscape(source)), Key: aws.String(fileName)})
 	if err != nil {
 		return err
 	}
 
-	err = svc.WaitUntilObjectExists(&s3.HeadObjectInput{Bucket: aws.String("export-bucket/export/"), Key: aws.String(e.Object.Key)})
+	err = svc.WaitUntilObjectExists(&s3.HeadObjectInput{Bucket: aws.String(processFolder), Key: aws.String(e.Object.Key)})
 	if err != nil {
 		return err
 	}

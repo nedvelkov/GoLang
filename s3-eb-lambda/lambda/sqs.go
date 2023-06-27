@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/sqs"
@@ -10,8 +11,9 @@ import (
 func SendSqs(m string) {
 	logger.Info().Msg("create SQS client")
 	svc := sqs.New(sess)
+	sqsName := os.Getenv("SQS_NAME")
 
-	queueURL, err := getQueueUrl("sqs", svc)
+	queueURL, err := getQueueUrl(sqsName, svc)
 	if err != nil {
 		logger.Error().Msg(err.Error())
 		return
