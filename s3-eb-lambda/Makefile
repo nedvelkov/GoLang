@@ -27,7 +27,7 @@ scan-dynamodb:
 	awslocal dynamodb scan --table-name $(TABLE_NAME)
 
 get-logs:
-	powershell.exe ./scripts/log-events.ps1
+	powershell.exe ./scripts/log-events.ps1 -lambdaName $(LAMBDA_NAME)
 
 deploy-terraform:
 	cd ./terraform && \
