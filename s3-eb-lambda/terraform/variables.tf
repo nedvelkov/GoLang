@@ -22,3 +22,14 @@ variable "export_bucket" {
   default = "export-bucket"
   type    = string
 }
+
+variable "sqs_name" {
+  default = "sqs"
+  type    = string
+}
+
+
+variable "dlq_sqs_name" {
+  default = "dlq-sqs"
+  type    = string
+}

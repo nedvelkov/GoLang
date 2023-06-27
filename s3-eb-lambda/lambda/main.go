@@ -19,7 +19,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
-	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/rs/zerolog"
 )
@@ -31,26 +30,23 @@ type Record struct {
 }
 
 var (
-	dynamoClient dynamodbiface.DynamoDBAPI
-	tableName    string
-	svc          *s3.S3
-	logger       zerolog.Logger
+	tableName string
+	logger    zerolog.Logger
+	sess      *session.Session
 )
 
 func main() {
 	region := os.Getenv("AWS_REGION")
-	sess, err := session.NewSession(&aws.Config{
-		Endpoint:         aws.String(os.Getenv("AWS_ENDPOINT_URL")),
-		Region:           aws.String(region),
-		S3ForcePathStyle: aws.Bool(true),
-	})
-	if err != nil {
-		return
-	}
+	sess = session.Must(session.NewSessionWithOptions(session.Options{
+		SharedConfigState: session.SharedConfigEnable,
+		Config: aws.Config{
+			Endpoint:         aws.String(os.Getenv("AWS_ENDPOINT_URL")),
+			Region:           aws.String(region),
+			S3ForcePathStyle: aws.Bool(true),
+		},
+	}))
 
 	logger = zerolog.New(os.Stdout)
-	svc = s3.New(sess)
-	dynamoClient = dynamodb.New(sess)
 	tableName = "records"
 	logger.Info().Msg("Invoke lambda")
 	lambda.Start(HandleLambdaEvent)
@@ -58,11 +54,15 @@ func main() {
 
 func HandleLambdaEvent(ctx context.Context, s3Event events.S3Event) {
 	for _, record := range s3Event.Records {
-		createRecord(tableName, record, dynamoClient)
+		createRecord(tableName, record)
 	}
 }
 
-func createRecord(tableName string, s3Event events.S3EventRecord, dynamoClient dynamodbiface.DynamoDBAPI) (*Record, error) {
+func createRecord(tableName string, s3Event events.S3EventRecord) (*Record, error) {
+
+	logger.Info().Msg("Create S3 client")
+	svc := s3.New(sess)
+
 	logger.Info().Msg("Process event record")
 	s3 := s3Event.S3
 
@@ -72,14 +72,14 @@ func createRecord(tableName string, s3Event events.S3EventRecord, dynamoClient d
 	record := new(Record)
 	record.Id = getGuid()
 	record.Invoke = s3Event.EventTime.String()
-
-	val, err := getS3Object(s3)
+	val, err := getS3Object(s3, svc)
 
 	if err != nil {
 		logger.Error().Msg(err.Error())
 	} else {
 		record.Bucket = val
-		CopyObject(s3)
+		CopyObject(s3, svc)
+		SendSqs()
 	}
 
 	av, err := dynamodbattribute.MarshalMap(record)
@@ -91,6 +91,10 @@ func createRecord(tableName string, s3Event events.S3EventRecord, dynamoClient d
 		Item:      av,
 		TableName: aws.String(tableName),
 	}
+
+	logger.Info().Msg("Create dynamodb client")
+	dynamoClient := dynamodb.New(sess)
+
 	_, err = dynamoClient.PutItem(input)
 	if err != nil {
 		logger.Error().Msg(err.Error())
@@ -100,7 +104,7 @@ func createRecord(tableName string, s3Event events.S3EventRecord, dynamoClient d
 	return record, nil
 }
 
-func getS3Object(e events.S3Entity) (string, error) {
+func getS3Object(e events.S3Entity, svc *s3.S3) (string, error) {
 	resp, err := svc.GetObject(&s3.GetObjectInput{
 		Bucket: aws.String(e.Bucket.Name),
 		Key:    aws.String(e.Object.Key),
@@ -137,7 +141,7 @@ func getGuid() string {
 	return fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
 }
 
-func CopyObject(e events.S3Entity) error {
+func CopyObject(e events.S3Entity, svc *s3.S3) error {
 	logger.Info().Msg("Copy file to export bucket")
 	source := e.Bucket.Name + "/" + e.Object.Key
 	_, err := svc.CopyObject(&s3.CopyObjectInput{Bucket: aws.String("export-bucket/export/"),
@@ -153,3 +157,39 @@ func CopyObject(e events.S3Entity) error {
 
 	return err
 }
+
+// func SendSqs() {
+// 	logger.Info().Msg("create SQS client")
+// 	svc := sqs.New(sess)
+
+// 	queueURL, err := getQueueUrl("sqs", svc)
+// 	if err != nil {
+// 		logger.Error().Msg(err.Error())
+// 		return
+// 	}
+
+// 	messageBody := "Hello from Go!"
+
+// 	sendMessageInput := &sqs.SendMessageInput{
+// 		MessageBody: aws.String(messageBody),
+// 		QueueUrl:    queueURL.QueueUrl,
+// 	}
+
+// 	logger.Info().Msg("sending message")
+// 	result, err := svc.SendMessage(sendMessageInput)
+// 	if err != nil {
+// 		logger.Error().Msg(err.Error())
+// 		return
+// 	}
+
+// 	logger.Info().Msg(fmt.Sprintf("send message with id %v", *result.MessageId))
+// }
+
+// func getQueueUrl(queueName string, svc *sqs.SQS) (*sqs.GetQueueUrlOutput, error) {
+
+// 	result, err := svc.GetQueueUrl(&sqs.GetQueueUrlInput{
+// 		QueueName: aws.String(queueName),
+// 	})
+
+// 	return result, err
+// }
